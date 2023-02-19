@@ -27,7 +27,7 @@ size(innerWidth, innerHeight);
 var Node = function(x, y) {
     this.pos = new DVector(x, y);
     this.vel = new DVector(0, 0);
-    this.mass = random(10, 15);
+    this.mass = random(15, 20);
 };
 Node.prototype.update = function() {
     this.vel.y += this.mass * dt;

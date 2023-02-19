@@ -78,12 +78,16 @@ var point1 = new Node(0, 0, true);
 var point2 = new Node(100, 0);
 var point3 = new Node(100, 100);
 var point4 = new Node(0, 100);
+var point5 = new Node(0, -100);
+var point6 = new Node(100, -100);
 
 scene.add(
     point1,
     point2,
     point3,
-    point4
+    point4,
+    point5,
+    point6
 );
 
 scene.join(
@@ -115,6 +119,31 @@ scene.join(
     new Spring(
         point2,
         point4,
+        150 * sqrt(2)
+    ),
+    new Spring(
+        point1,
+        point5,
+        150
+    ),
+    new Spring(
+        point5,
+        point6,
+        150
+    ),
+    new Spring(
+        point2,
+        point6,
+        150
+    ),
+    new Spring(
+        point1,
+        point6,
+        150 * sqrt(2)
+    ),
+    new Spring(
+        point2,
+        point5,
         150 * sqrt(2)
     )
 );

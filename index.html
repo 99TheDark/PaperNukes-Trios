@@ -27,12 +27,18 @@ size(innerWidth, innerHeight);
 var Node = function(x, y) {
     this.pos = new DVector(x, y);
     this.vel = new DVector(0, 0);
-    this.mass = random(15, 20);
+    this.mass = random(20, 30);
 };
 Node.prototype.update = function() {
     this.vel.y += this.mass * dt;
-    this.vel.mult(0.99)
+    this.vel.mult(0.98)
     this.pos.add(this.vel);
+
+    if(this.pos.y + 5 >= height) {
+        this.pos.y = height - 5;
+        this.vel.y *= -0.5;
+        this.vel.mult(0.9);
+    };
 };
 
 // TODO: Add tightness
@@ -65,14 +71,14 @@ Scene.prototype.update = function() {
         let n2 = spring.p2;
         let dist = DVector.dist(n1.pos, n2.pos);
         let disp = dist - spring.len;
-        let k = 0.0003;
+        let k = 0.3;
         let ang = atan2(n2.pos.y - n1.pos.y, n2.pos.x - n1.pos.x);
         
-        n1.vel.x += k * disp * cos(ang);
-        n1.vel.y += k * disp * sin(ang);
+        n1.vel.x += dt * k * disp * cos(ang);
+        n1.vel.y += dt * k * disp * sin(ang);
         
-        n2.vel.x += k * disp * cos(ang + 180);
-        n2.vel.y += k * disp * sin(ang + 180);
+        n2.vel.x += dt * k * disp * cos(ang + 180);
+        n2.vel.y += dt * k * disp * sin(ang + 180);
     });
     
     this.nodes.forEach(node => node.update());

@@ -72,8 +72,6 @@ Scene.prototype.update = function() {
     this.nodes.forEach(node => node.static ? node.reset() : node.update());
 };
 
-alert(Dark)
-
 var scene = new Scene();
 
 var point1 = new Node(0, 0, true);

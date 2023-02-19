@@ -5,7 +5,7 @@ var Node = function(x, y, static, r) {
     this.pos = new DVector(x, y);
     this.vel = new DVector(0, 0);
     this.static = static || false;
-    this.r = r || 5;
+    this.r = r || 6;
     this.mass = PI * sq(this.r) * 0.2;
 };
 Node.prototype.update = function() {
@@ -59,7 +59,7 @@ Scene.prototype.update = function() {
 
         let dist = DVector.dist(n1.pos, n2.pos);
         let disp = dist - spring.len;
-        let k = 17;
+        let k = 18;
         let ang = atan2(n2.pos.y - n1.pos.y, n2.pos.x - n1.pos.x);
 
         n1.vel.x += dt * k * disp * cos(ang) / n1.mass;

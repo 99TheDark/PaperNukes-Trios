@@ -10,10 +10,10 @@ var lineCollision = function(x1, y1, x2, y2, x3, y3, x4, y4) {
     let dy1 = y2 - y1;
     let dx2 = x4 - x3;
     let dy2 = y4 - y3;
-    
+
     let s = (-dy1 * (x1 - x3) + dx1 * (y1 - y3)) / (-dx2 * dy1 + dx1 * dy2);
     let t = (dx2 * (y1 - y3) - dy2 * (x1 - x3)) / (-dx2 * dy1 + dx1 * dy2);
-    
+
     if(s >= 0 && s <= 1 && t >= 0 && t <= 1) {
         return {
             "x": x1 + t * dx1,
@@ -54,9 +54,21 @@ var Spring = function(p1, p2, len, i1, i2) {
     this.p1 = p1;
     this.p2 = p2;
     this.len = len;
+    this.disp = 0;
 
     this.i1 = i1;
     this.i2 = i2;
+};
+Spring.prototype.update = function() {
+    this.disp =  DVector.dist(this.p1.pos, this.p2.pos) - this.len;
+    let k = 70;
+    let ang = atan2(this.p2.pos.y - this.p1.pos.y, this.p2.pos.x - this.p1.pos.x);
+
+    this.p1.vel.x += dt * k * this.disp * cos(ang) / this.p1.mass;
+    this.p1.vel.y += dt * k * this.disp * sin(ang) / this.p1.mass;
+
+    this.p2.vel.x += dt * k * this.disp * cos(ang + 180) / this.p2.mass;
+    this.p2.vel.y += dt * k * this.disp * sin(ang + 180) / this.p2.mass;
 };
 
 var Scene = function() {
@@ -71,36 +83,28 @@ Scene.prototype.join = function(...args) {
 };
 Scene.prototype.draw = function() {
     strokeWeight(3);
-    stroke(210, 0, 0);
     this.springs.forEach(spring => {
+        let col = lerpColor(color(255, 0, 0), color(0, 0, 0), abs(spring.disp) / 40);
+        stroke(red(col), green(col), blue(col), alpha(col)); // gotta fix this glitch in Dark.js
         line(spring.p1.pos.x, spring.p1.pos.y, spring.p2.pos.x, spring.p2.pos.y);
     });
-    stroke(0);
+    let m = 10;
     this.nodes.forEach(node => {
+        stroke(0);
         strokeWeight(node.r * 2);
         point(node.pos.x, node.pos.y);
+
+        // Show velocities
+        /*stroke(0, 150, 0);
+        strokeWeight(3);
+        line(node.pos.x, node.pos.y, node.pos.x + node.vel.x * m, node.pos.y + node.vel.y * m);*/
     });
 };
 Scene.prototype.update = function() {
-    this.springs.forEach(spring => {
-        let n1 = spring.p1;
-        let n2 = spring.p2;
-
-        let dist = DVector.dist(n1.pos, n2.pos);
-        let disp = dist - spring.len;
-        let k = 1000;
-        let ang = atan2(n2.pos.y - n1.pos.y, n2.pos.x - n1.pos.x);
-
-        n1.vel.x += dt * 0.5 * k * disp * cos(ang) / n1.mass;
-        n1.vel.y += dt * 0.5 * k * disp * sin(ang) / n1.mass;
-
-        n2.vel.x += dt * 0.5 * k * disp * cos(ang + 180) / n2.mass;
-        n2.vel.y += dt * 0.5 * k * disp * sin(ang + 180) / n2.mass;
-    });
+    this.springs.forEach(spring => spring.update());
 
     this.nodes.forEach(node => node.static ? node.reset() : node.update());
 };
-console.log(DVector.prototype);
 
 var loadLevel = function(txt) {
     let dat = txt.split("\n").map(line => line.split(" "));
@@ -189,8 +193,8 @@ var scene = new Scene();
 var raw = new XMLHttpRequest();
 raw.open("GET", "data.txt", false);
 raw.onreadystatechange = function() {
-    if(raw.readyState === 4) {
-        if(raw.status === 200 || raw.status == 0) {
+    if(raw.readyState == 4) {
+        if(raw.status == 200 || raw.status == 0) {
             text = raw.responseText;
             loadLevel(text);
         }

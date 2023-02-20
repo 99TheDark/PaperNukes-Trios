@@ -4,12 +4,31 @@ size(innerWidth, innerHeight);
 // Is gravity on or off?
 var gravity = true;
 
+// From https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+var lineCollision = function(x1, y1, x2, y2, x3, y3, x4, y4) {
+    let dx1 = x2 - x1;
+    let dy1 = y2 - y1;
+    let dx2 = x4 - x3;
+    let dy2 = y4 - y3;
+    
+    let s = (-dy1 * (x1 - x3) + dx1 * (y1 - y3)) / (-dx2 * dy1 + dx1 * dy2);
+    let t = (dx2 * (y1 - y3) - dy2 * (x1 - x3)) / (-dx2 * dy1 + dx1 * dy2);
+    
+    if(s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+        return {
+            "x": x1 + t * dx1,
+            "y": y1 + t * dy1
+        };
+    }
+    return null;
+};
+
 var Node = function(x, y, static, r) {
     this.pos = new DVector(x, y + height / 2);
-    this.vel = new DVector(this.pos.y / 15, -20);
+    this.vel = new DVector(this.pos.y / 12, -20); // give rotational energy, not final
     this.static = static || false;
     this.r = r || 6;
-    this.mass = PI * sq(this.r) * 0.2;
+    this.mass = PI * sq(this.r) * 0.3;
 };
 Node.prototype.update = function() {
     if(gravity) this.vel.y += this.mass * dt; // gravity
@@ -31,7 +50,6 @@ Node.prototype.copy = function() {
     return n;
 };
 
-// TODO: Add tightness (k)
 var Spring = function(p1, p2, len, i1, i2) {
     this.p1 = p1;
     this.p2 = p2;
@@ -70,18 +88,19 @@ Scene.prototype.update = function() {
 
         let dist = DVector.dist(n1.pos, n2.pos);
         let disp = dist - spring.len;
-        let k = 30;
+        let k = 1000;
         let ang = atan2(n2.pos.y - n1.pos.y, n2.pos.x - n1.pos.x);
 
-        n1.vel.x += dt * k * disp * cos(ang) / n1.mass;
-        n1.vel.y += dt * k * disp * sin(ang) / n1.mass;
+        n1.vel.x += dt * 0.5 * k * disp * cos(ang) / n1.mass;
+        n1.vel.y += dt * 0.5 * k * disp * sin(ang) / n1.mass;
 
-        n2.vel.x += dt * k * disp * cos(ang + 180) / n2.mass;
-        n2.vel.y += dt * k * disp * sin(ang + 180) / n2.mass;
+        n2.vel.x += dt * 0.5 * k * disp * cos(ang + 180) / n2.mass;
+        n2.vel.y += dt * 0.5 * k * disp * sin(ang + 180) / n2.mass;
     });
 
     this.nodes.forEach(node => node.static ? node.reset() : node.update());
 };
+console.log(DVector.prototype);
 
 var loadLevel = function(txt) {
     let dat = txt.split("\n").map(line => line.split(" "));

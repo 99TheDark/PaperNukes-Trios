@@ -1,9 +1,10 @@
 setCanvas(document.getElementById("game"));
 size(innerWidth, innerHeight);
 
-// Is gravity on or off?
+// Globals
 var gravity = true;
 var showVelocities = false;
+var windSpeed = 0.0;
 
 // From https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
 var lineCollision = function(x1, y1, x2, y2, x3, y3, x4, y4) {
@@ -105,7 +106,7 @@ Scene.prototype.draw = function() {
 Scene.prototype.update = function() {
     this.springs.forEach(spring => spring.update());
 
-    this.nodes.forEach(node => node.static ? node.reset() : node.update());
+    this.nodes.forEach(node => (node.vel.x += windSpeed) && node.static ? node.reset() : node.update());
 };
 
 var loadLevel = function(txt) {
@@ -208,4 +209,8 @@ draw = function() {
     background(192, 232, 250);
     scene.update();
     scene.draw();
+};
+
+pageResized = function() {
+    size(innerWidth, innerHeight);
 };

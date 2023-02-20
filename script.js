@@ -2,14 +2,14 @@ setCanvas(document.getElementById("game"));
 size(innerWidth, innerHeight);
 
 // Is gravity on or off?
-var gravity = false;
+var gravity = true;
 
 var Node = function(x, y, static, r) {
-    this.pos = new DVector(x, y);
-    this.vel = new DVector(0, 0);
+    this.pos = new DVector(x, y + height / 2);
+    this.vel = new DVector(this.pos.y / 20, -10);
     this.static = static || false;
     this.r = r || 6;
-    this.mass = PI * sq(this.r) * 0.3;
+    this.mass = PI * sq(this.r) * 0.2;
 };
 Node.prototype.update = function() {
     if(gravity) this.vel.y += this.mass * dt; // gravity
@@ -62,7 +62,7 @@ Scene.prototype.update = function() {
 
         let dist = DVector.dist(n1.pos, n2.pos);
         let disp = dist - spring.len;
-        let k = 18;
+        let k = 30;
         let ang = atan2(n2.pos.y - n1.pos.y, n2.pos.x - n1.pos.x);
 
         n1.vel.x += dt * k * disp * cos(ang) / n1.mass;
@@ -104,7 +104,7 @@ var loadLevel = function(txt) {
                 springs.push(new Spring(
                     n1,
                     n2,
-                    DVector.dist(n1.pos, n2.pos) * 1.5
+                    DVector.dist(n1.pos, n2.pos)
                 ));
                 break;
         }
@@ -130,9 +130,6 @@ raw.send(null);
 
 draw = function() {
     background(192, 232, 250);
-    pushMatrix();
-    translate(width / 2, height / 2);
     scene.update();
     scene.draw();
-    popMatrix();
 };

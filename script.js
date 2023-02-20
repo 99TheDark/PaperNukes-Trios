@@ -3,6 +3,7 @@ size(innerWidth, innerHeight);
 
 // Is gravity on or off?
 var gravity = true;
+var showVelocities = false;
 
 // From https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
 var lineCollision = function(x1, y1, x2, y2, x3, y3, x4, y4) {
@@ -94,10 +95,11 @@ Scene.prototype.draw = function() {
         strokeWeight(node.r * 2);
         point(node.pos.x, node.pos.y);
 
-        // Show velocities
-        /*stroke(0, 150, 0);
-        strokeWeight(3);
-        line(node.pos.x, node.pos.y, node.pos.x + node.vel.x * m, node.pos.y + node.vel.y * m);*/
+        if(showVelocities) {
+            stroke(0, 150, 0);
+            strokeWeight(3);
+            line(node.pos.x, node.pos.y, node.pos.x + node.vel.x * m, node.pos.y + node.vel.y * m);
+        }
     });
 };
 Scene.prototype.update = function() {

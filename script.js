@@ -25,12 +25,20 @@ Node.prototype.update = function() {
 Node.prototype.reset = function() {
     this.vel.zero2D();
 };
+Node.prototype.copy = function() {
+    let n = new Node(this.pos.x, this.pos.y, this.static, this.r);
+    n.vel.set(this.vel);
+    return n;
+};
 
 // TODO: Add tightness (k)
-var Spring = function(p1, p2, len) {
+var Spring = function(p1, p2, len, i1, i2) {
     this.p1 = p1;
     this.p2 = p2;
     this.len = len;
+
+    this.i1 = i1;
+    this.i2 = i2;
 };
 
 var Scene = function() {
@@ -77,12 +85,12 @@ Scene.prototype.update = function() {
 
 var loadLevel = function(txt) {
     let dat = txt.split("\n").map(line => line.split(" "));
-    let nodes = [];
-    let springs = [];
+    let objs = [];
+    let curObj;
     dat.forEach(obj => {
         switch(obj[0]) { // obj[0] = type
             case "n": // node
-                nodes.push(
+                curObj.nodes.push(
                     new Node(
                         Number(obj[1]), // x
                         Number(obj[2]), // y
@@ -91,26 +99,70 @@ var loadLevel = function(txt) {
                     ));
                 break;
             case "x": // static node
-                nodes.push(new Node(
+                curObj.nodes.push(new Node(
                     Number(obj[1]), // x
                     Number(obj[2]), // y
                     true,
                     Number(obj[3])  // radius
                 ));
                 break;
-            case "s":
+            case "s": // spring
                 // node 1 & node 2
-                let n1 = nodes[Number(obj[1])], n2 = nodes[Number(obj[2])];
-                springs.push(new Spring(
+                let n1 = curObj.nodes[Number(obj[1])], n2 = curObj.nodes[Number(obj[2])];
+                curObj.springs.push(new Spring(
                     n1,
                     n2,
-                    DVector.dist(n1.pos, n2.pos)
+                    DVector.dist(n1.pos, n2.pos),
+                    Number(obj[1]),
+                    Number(obj[2])
                 ));
+                break;
+            case "o": // object
+                switch(obj[1]) {
+                    case "new":
+                        curObj = {
+                            nodes: [],
+                            springs: []
+                        };
+                        objs.push(curObj);
+                        break;
+                    case "copy":
+                        // I need a better way of doing this, but structuredClone deletes prototype
+                        let o = objs[Number(obj[2])];
+                        curObj = {
+                            nodes: [],
+                            springs: []
+                        };
+                        o.nodes.forEach(n => curObj.nodes.push(n.copy()));
+                        o.springs.forEach(s => {
+                            curObj.springs.push(new Spring(
+                                curObj.nodes[s.i1],
+                                curObj.nodes[s.i2],
+                                s.len,
+                                s.i1,
+                                s.i2
+                            ));
+                        });
+                        console.log(curObj)
+                        curObj.nodes.forEach(n => n.vel.y += 20);
+                        objs.push(curObj);
+                        break;
+                    case "move":
+                        let movement = new DVector(Number(obj[2]), Number(obj[3]));
+                        curObj.nodes.forEach(node => node.pos.add(movement));
+                        break;
+                    case "push":
+                        let velocity = new DVector(Number(obj[2]), Number(obj[3]));
+                        curObj.nodes.forEach(node => node.vel.add(velocity));
+                }
                 break;
         }
     });
-    scene.add.apply(scene, nodes);
-    scene.join.apply(scene, springs);
+
+    objs.forEach(obj => {
+        scene.add.apply(scene, obj.nodes);
+        scene.join.apply(scene, obj.springs);
+    });
 };
 
 var scene = new Scene();

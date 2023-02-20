@@ -1,15 +1,18 @@
 setCanvas(document.getElementById("game"));
 size(innerWidth, innerHeight);
 
+// Is gravity on or off?
+var gravity = false;
+
 var Node = function(x, y, static, r) {
     this.pos = new DVector(x, y);
     this.vel = new DVector(0, 0);
     this.static = static || false;
     this.r = r || 6;
-    this.mass = PI * sq(this.r) * 0.2;
+    this.mass = PI * sq(this.r) * 0.3;
 };
 Node.prototype.update = function() {
-    // this.vel.y += this.mass * dt; // gravity
+    if(gravity) this.vel.y += this.mass * dt; // gravity
     this.vel.mult(0.97);
     this.pos.add(this.vel);
 
@@ -72,81 +75,58 @@ Scene.prototype.update = function() {
     this.nodes.forEach(node => node.static ? node.reset() : node.update());
 };
 
+var loadLevel = function(txt) {
+    let dat = txt.split("\n").map(line => line.split(" "));
+    let nodes = [];
+    let springs = [];
+    dat.forEach(obj => {
+        switch(obj[0]) { // obj[0] = type
+            case "n": // node
+                nodes.push(
+                    new Node(
+                        Number(obj[1]), // x
+                        Number(obj[2]), // y
+                        false,
+                        Number(obj[3])  // radius
+                    ));
+                break;
+            case "x": // static node
+                nodes.push(new Node(
+                    Number(obj[1]), // x
+                    Number(obj[2]), // y
+                    true,
+                    Number(obj[3])  // radius
+                ));
+                break;
+            case "s":
+                // node 1 & node 2
+                let n1 = nodes[Number(obj[1])], n2 = nodes[Number(obj[2])];
+                springs.push(new Spring(
+                    n1,
+                    n2,
+                    DVector.dist(n1.pos, n2.pos) * 1.5
+                ));
+                break;
+        }
+    });
+    scene.add.apply(scene, nodes);
+    scene.join.apply(scene, springs);
+};
+
 var scene = new Scene();
 
-var point1 = new Node(0, 0, true);
-var point2 = new Node(100, 0);
-var point3 = new Node(100, 100);
-var point4 = new Node(0, 100);
-var point5 = new Node(0, -100);
-var point6 = new Node(100, -100);
-
-scene.add(
-    point1,
-    point2,
-    point3,
-    point4,
-    point5,
-    point6
-);
-
-scene.join(
-    new Spring(
-        point1,
-        point2,
-        150 // resting length
-    ),
-    new Spring(
-        point2,
-        point3,
-        150
-    ),
-    new Spring(
-        point3,
-        point4,
-        150
-    ),
-    new Spring(
-        point4,
-        point1,
-        150
-    ),
-    new Spring(
-        point1,
-        point3,
-        150 * sqrt(2)
-    ),
-    new Spring(
-        point2,
-        point4,
-        150 * sqrt(2)
-    ),
-    new Spring(
-        point1,
-        point5,
-        150
-    ),
-    new Spring(
-        point5,
-        point6,
-        150
-    ),
-    new Spring(
-        point2,
-        point6,
-        150
-    ),
-    new Spring(
-        point1,
-        point6,
-        150 * sqrt(2)
-    ),
-    new Spring(
-        point2,
-        point5,
-        150 * sqrt(2)
-    )
-);
+// From https://stackoverflow.com/questions/14446447/how-to-read-a-local-text-file-in-the-browser
+var raw = new XMLHttpRequest();
+raw.open("GET", "data.txt", false);
+raw.onreadystatechange = function() {
+    if(raw.readyState === 4) {
+        if(raw.status === 200 || raw.status == 0) {
+            text = raw.responseText;
+            loadLevel(text);
+        }
+    }
+};
+raw.send(null);
 
 draw = function() {
     background(192, 232, 250);

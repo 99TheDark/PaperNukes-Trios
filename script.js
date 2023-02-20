@@ -6,7 +6,7 @@ var gravity = true;
 
 var Node = function(x, y, static, r) {
     this.pos = new DVector(x, y + height / 2);
-    this.vel = new DVector(this.pos.y / 20, -10);
+    this.vel = new DVector(this.pos.y / 15, -20);
     this.static = static || false;
     this.r = r || 6;
     this.mass = PI * sq(this.r) * 0.2;

@@ -143,7 +143,6 @@ var loadLevel = function(txt) {
                                 s.i2
                             ));
                         });
-                        console.log(curObj)
                         curObj.nodes.forEach(n => n.vel.y += 20);
                         objs.push(curObj);
                         break;

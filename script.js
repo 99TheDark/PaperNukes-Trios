@@ -6,6 +6,7 @@ var gravity = true;
 var showVelocities = false;
 var windSpeed = 0.05;
 
+// For later collisions, might switch
 // From https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
 var lineCollision = function(x1, y1, x2, y2, x3, y3, x4, y4) {
     let dx1 = x2 - x1;

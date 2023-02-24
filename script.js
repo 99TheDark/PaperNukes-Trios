@@ -4,7 +4,7 @@ size(innerWidth, innerHeight);
 // Globals
 var gravity = true;
 var showVelocities = false;
-var windSpeed = 0.0;
+var windSpeed = 0.05;
 
 // From https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
 var lineCollision = function(x1, y1, x2, y2, x3, y3, x4, y4) {
@@ -27,7 +27,7 @@ var lineCollision = function(x1, y1, x2, y2, x3, y3, x4, y4) {
 
 var Node = function(x, y, static, r) {
     this.pos = new DVector(x, y + height / 2);
-    this.vel = new DVector(this.pos.y / 12, -20); // give rotational energy, not final
+    this.vel = new DVector(this.pos.y / 6 - 70, -20); // give rotational energy, not final
     this.static = static || false;
     this.r = r || 6;
     this.mass = PI * sq(this.r) * 0.3;
@@ -110,6 +110,7 @@ Scene.prototype.update = function() {
 };
 
 var loadLevel = function(txt) {
+    txt = txt.replaceAll("\r", "");
     let dat = txt.split("\n").map(line => line.split(" "));
     let objs = [];
     let curObj;

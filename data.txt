@@ -109,3 +109,7 @@ s 9 6
 s 9 7
 s 9 8
 s 9 9
+o copy 0
+o move 2000 -300
+o scale 0.5
+o push -30 -10

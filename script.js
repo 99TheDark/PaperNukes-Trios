@@ -311,4 +311,5 @@ pageResized = function() {
     size(innerWidth, innerHeight);
 };
 
+console.log("Debugging:");
 console.log(Dark.url.host);

@@ -314,13 +314,11 @@ var generateBall = function(xPos, yPos, xVel, yVel, radiusSize, numOfPoints) {
     }
 
     for(let i = 0; i < numOfPoints; i++) {
-        for(let j = 0; j < numOfPoints; j++) {
-            if(i != j) {
-                if(abs(i - j) == 1 || abs(i - j) == numOfPoints - 1) {
-                    circleCode += "s " + i + " " + j + "\n";
-                } else {
-                    circleCode += "a " + i + " " + j + "\n";
-                }
+        for(let j = i; j < numOfPoints; j++) {
+            if(abs(i - j) == 1 || abs(i - j) == numOfPoints - 1) {
+                circleCode += "s " + i + " " + j + "\n";
+            } else {
+                circleCode += "a " + i + " " + j + "\n";
             }
         }
     }

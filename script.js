@@ -5,9 +5,9 @@ size(innerWidth, innerHeight);
 var gravity = true;
 var showVelocities = false;
 var windSpeed = 0.07;
-var k = 30;
+var bounciness = 20;
+var airPressure = 80;
 
-// For later collisions
 // From https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
 // https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
 var lineCollision = function(x1, y1, x2, y2, x3, y3, x4, y4) {
@@ -63,7 +63,7 @@ Node.prototype.update = function() {
         this.vel.y *= -0.7;
         this.vel.mult(0.85);
     }
-    /*if(this.pos.x + this.r >= width) {
+    if(this.pos.x + this.r >= width) {
         this.pos.x = width - this.r;
         this.vel.x *= -0.7;
         this.vel.mult(0.85);
@@ -72,7 +72,7 @@ Node.prototype.update = function() {
         this.pos.x = this.r;
         this.vel.x *= -0.7;
         this.vel.mult(0.85);
-    }*/
+    }
 };
 Node.prototype.reset = function() {
     this.vel.zero2D();
@@ -103,7 +103,7 @@ Node.prototype.collideSpring = function(spring) {
                 DVector.mult(
                     DVector.normalize(this.vel),
                     DVector.dist(collision, this.lastPos) / short.dist
-                ), 
+                ),
                 this.r
             )
         );
@@ -115,17 +115,18 @@ Node.prototype.collideSpring = function(spring) {
 
         spring.p1.vel.sub(v);
         spring.p2.vel.sub(v);
-        
-        this.mesh.nodes.forEach(node => node.vel.add(DVector.mult(v, 1.3)));
-        spring.mesh.nodes.forEach(node => node.vel.sub(DVector.mult(v, 1.3)));
+
+        // this.mesh.nodes.forEach(node => node.vel.add(DVector.mult(v, 0.5)));
+        // spring.mesh.nodes.forEach(node => node.vel.sub(DVector.mult(v, 0.5)));
     }
 };
 
-var Spring = function(p1, p2, len, i1, i2) {
+var Spring = function(p1, p2, len, i1, i2, k) {
     this.p1 = p1;
     this.p2 = p2;
     this.len = len;
     this.disp = 0;
+    this.k = k;
 
     this.i1 = i1;
     this.i2 = i2;
@@ -134,11 +135,11 @@ Spring.prototype.update = function() {
     this.disp = DVector.dist(this.p1.pos, this.p2.pos) - this.len;
     let ang = atan2(this.p2.pos.y - this.p1.pos.y, this.p2.pos.x - this.p1.pos.x);
 
-    this.p1.vel.x += dt * k * this.disp * cos(ang) / this.p1.mass;
-    this.p1.vel.y += dt * k * this.disp * sin(ang) / this.p1.mass;
+    this.p1.vel.x += dt * this.k * this.disp * cos(ang) / this.p1.mass;
+    this.p1.vel.y += dt * this.k * this.disp * sin(ang) / this.p1.mass;
 
-    this.p2.vel.x += dt * k * this.disp * cos(ang + 180) / this.p2.mass;
-    this.p2.vel.y += dt * k * this.disp * sin(ang + 180) / this.p2.mass;
+    this.p2.vel.x += dt * this.k * this.disp * cos(ang + 180) / this.p2.mass;
+    this.p2.vel.y += dt * this.k * this.disp * sin(ang + 180) / this.p2.mass;
 };
 
 var Mesh = function() {
@@ -163,7 +164,7 @@ Scene.prototype.draw = function() {
         strokeWeight(3);
         obj.springs.forEach(spring => {
             let col = lerpColor(color(255, 0, 0), color(0, 0, 0), abs(spring.disp) / 40);
-            stroke(red(col), green(col), blue(col), alpha(col)); // gotta fix this glitch in Dark.js
+            stroke(col);
             line(spring.p1.pos.x, spring.p1.pos.y, spring.p2.pos.x, spring.p2.pos.y);
         });
         let m = 10;
@@ -220,13 +221,25 @@ var loadLevel = function(txt) {
                 break;
             case "s": // spring
                 // node 1 & node 2
-                let n1 = curObj.nodes[Number(obj[1])], n2 = curObj.nodes[Number(obj[2])];
+                var n1 = curObj.nodes[Number(obj[1])], n2 = curObj.nodes[Number(obj[2])];
                 curObj.springs.push(new Spring(
                     n1,
                     n2,
                     DVector.dist(n1.pos, n2.pos),
                     Number(obj[1]),
-                    Number(obj[2])
+                    Number(obj[2]),
+                    bounciness
+                ));
+                break;
+            case "a":
+                var n1 = curObj.nodes[Number(obj[1])], n2 = curObj.nodes[Number(obj[2])];
+                curObj.springs.push(new Spring(
+                    n1,
+                    n2,
+                    DVector.dist(n1.pos, n2.pos),
+                    Number(obj[1]),
+                    Number(obj[2]),
+                    airPressure
                 ));
                 break;
             case "o": // object
@@ -252,7 +265,8 @@ var loadLevel = function(txt) {
                                 curObj.nodes[s.i2],
                                 s.len,
                                 s.i1,
-                                s.i2
+                                s.i2,
+                                s.k
                             ));
                         });
                         curObj.nodes.forEach(n => n.vel.y += 20);
@@ -286,30 +300,33 @@ var loadLevel = function(txt) {
     });
 };
 
-var scene = new Scene();
+var generateBall = function(xPos, yPos, xVel, yVel, radiusSize, numOfPoints) {
+    let circleCode = "o new\n";
 
-var generateBall = function(xPos, yPos, radiusSize, numOfPoints) {
-    var circleCode = ``;
-    circleCode += "o new\n";
-  
-    for(var i = 0; i < numOfPoints; i ++){
-      var x = xPos + sin(i * 360/numOfPoints) * radiusSize;
-      var y = yPos + cos(i * 360/numOfPoints) * radiusSize;
-      circleCode += "n " + round(x) + " " + round(y) + "\n";
+    for(let i = 0; i < numOfPoints; i++) {
+        let x = xPos + sin(i * 360 / numOfPoints) * radiusSize;
+        let y = yPos + cos(i * 360 / numOfPoints) * radiusSize;
+        circleCode += "n " + round(x) + " " + round(y) + "\n";
     }
-    
-    
-    for(var i = 0 ; i < numOfPoints; i ++){
-      for(var j = 0 ; j < numOfPoints; j ++){
-        if(i !== j){
-          circleCode += "s " + i + " " + j + "\n";
-        }
-      }  
-    }  
-    
-    loadLevel(circleCode);
 
+    for(let i = 0; i < numOfPoints; i++) {
+        for(let j = 0; j < numOfPoints; j++) {
+            if(i != j) {
+                if(abs(i - j) == 1 || abs(i - j) == numOfPoints - 1) {
+                    circleCode += "s " + i + " " + j + "\n";
+                } else {
+                    circleCode += "a " + i + " " + j + "\n";
+                }
+            }
+        }
+    }
+
+    circleCode += "o push " + xVel + " " + yVel;
+
+    loadLevel(circleCode);
 };
+
+var scene = new Scene();
 
 // From https://stackoverflow.com/questions/14446447/how-to-read-a-local-text-file-in-the-browser
 var raw = new XMLHttpRequest();
@@ -324,6 +341,9 @@ raw.onreadystatechange = function() {
 };
 raw.send(null);
 
+generateBall(200, 200, 10, -5, 100, 10);
+generateBall(1000, 100, -17, -8, 50, 10);
+
 draw = function() {
     background(192, 232, 250);
     scene.update();
@@ -333,6 +353,3 @@ draw = function() {
 pageResized = function() {
     size(innerWidth, innerHeight);
 };
-
-console.log("Debugging:");
-console.log(Dark.url.host);

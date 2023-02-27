@@ -310,3 +310,5 @@ draw = function() {
 pageResized = function() {
     size(innerWidth, innerHeight);
 };
+
+console.log(Dark.url.host);

@@ -5,7 +5,7 @@ size(innerWidth, innerHeight);
 var gravity = true;
 var showVelocities = false;
 var windSpeed = 0.07;
-var bounciness = 20;
+var bounciness = 40;
 var airPressure = 80;
 
 // From https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
@@ -163,7 +163,11 @@ Scene.prototype.draw = function() {
     this.objs.forEach(obj => {
         strokeWeight(3);
         obj.springs.forEach(spring => {
-            let col = lerpColor(color(255, 0, 0), color(0, 0, 0), abs(spring.disp) / 40);
+            let col = lerpColor(
+                color(255, 0, 0),
+                color(0, 0, 0),
+                abs(spring.disp) / spring.k
+            );
             stroke(col);
             line(spring.p1.pos.x, spring.p1.pos.y, spring.p2.pos.x, spring.p2.pos.y);
         });

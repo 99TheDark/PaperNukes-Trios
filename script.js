@@ -3,10 +3,10 @@ size(innerWidth, innerHeight);
 
 // Globals
 var gravity = true;
-var showVelocities = false;
+var showVelocities = !false;
 var windSpeed = 0.07;
 var bounciness = 40;
-var airPressure = 80;
+var airPressure = 150;
 
 // From https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
 // https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
@@ -49,7 +49,7 @@ var Node = function(x, y, static, r) {
     this.vel = new DVector((this.pos.y / 8 - 70) * 0, -20); // give rotational energy, not final
     this.static = static || false;
     this.r = r || 6;
-    this.mass = PI * sq(this.r) * 0.3;
+    this.mass = PI * sq(this.r) * 0.5;
 };
 Node.prototype.update = function() {
     [this.lastPos.x, this.lastPos.y] = [this.pos.x, this.pos.y];
@@ -116,8 +116,8 @@ Node.prototype.collideSpring = function(spring) {
         spring.p1.vel.sub(v);
         spring.p2.vel.sub(v);
 
-        // this.mesh.nodes.forEach(node => node.vel.add(DVector.mult(v, 0.5)));
-        // spring.mesh.nodes.forEach(node => node.vel.sub(DVector.mult(v, 0.5)));
+        this.mesh.nodes.forEach(node => node.vel.add(DVector.mult(v, 1.0)));
+        spring.mesh.nodes.forEach(node => node.vel.sub(DVector.mult(v, 1.0)));
     }
 };
 
@@ -171,11 +171,14 @@ Scene.prototype.draw = function() {
             stroke(col);
             line(spring.p1.pos.x, spring.p1.pos.y, spring.p2.pos.x, spring.p2.pos.y);
         });
+        beginShape();
+        // fill(255); // fill color
         let m = 10;
         obj.nodes.forEach(node => {
             stroke(0);
             strokeWeight(node.r * 2);
             point(node.pos.x, node.pos.y);
+            vertex(node.pos.x, node.pos.y);
 
             if(showVelocities) {
                 stroke(0, 150, 0);
@@ -183,6 +186,8 @@ Scene.prototype.draw = function() {
                 line(node.pos.x, node.pos.y, node.pos.x + node.vel.x * m, node.pos.y + node.vel.y * m);
             }
         });
+        endShape(CLOSE);
+        noFill();
     });
 };
 Scene.prototype.update = function() {
@@ -343,8 +348,8 @@ raw.onreadystatechange = function() {
 };
 raw.send(null);
 
-generateBall(200, 200, 10, -5, 100, 10);
-generateBall(1000, 100, -17, -8, 50, 10);
+generateBall(200, 200, 20, -20, 100, 10);
+generateBall(1000, 100, -17, -12, 50, 10);
 
 draw = function() {
     background(192, 232, 250);

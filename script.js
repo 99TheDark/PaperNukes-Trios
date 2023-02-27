@@ -288,6 +288,29 @@ var loadLevel = function(txt) {
 
 var scene = new Scene();
 
+var generateBall = function(xPos, yPos, radiusSize, numOfPoints) {
+    var circleCode = ``;
+    circleCode += "o new\n";
+  
+    for(var i = 0; i < numOfPoints; i ++){
+      var x = xPos + sin(i * 360/numOfPoints) * radiusSize;
+      var y = yPos + cos(i * 360/numOfPoints) * radiusSize;
+      circleCode += "n " + round(x) + " " + round(y) + "\n";
+    }
+    
+    
+    for(var i = 0 ; i < numOfPoints; i ++){
+      for(var j = 0 ; j < numOfPoints; j ++){
+        if(i !== j){
+          circleCode += "s " + i + " " + j + "\n";
+        }
+      }  
+    }  
+    
+    loadLevel(circleCode);
+
+};
+
 // From https://stackoverflow.com/questions/14446447/how-to-read-a-local-text-file-in-the-browser
 var raw = new XMLHttpRequest();
 raw.open("GET", "data.txt", false);

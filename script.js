@@ -922,21 +922,7 @@ Node.prototype.update = function() {
     this.vel.mult(0.97);
     this.pos.add(this.vel);
 
-    if(this.pos.y + this.r >= height) {
-        this.pos.y = height - this.r;
-        this.vel.y *= -0.7;
-        this.vel.mult(0.85);
-    }
-    /*if(this.pos.x + this.r >= width) {
-        this.pos.x = width - this.r;
-        this.vel.x *= -0.7;
-        this.vel.mult(0.85);
-    }
-    if(this.pos.x - this.r <= 0) {
-        this.pos.x = this.r;
-        this.vel.x *= -0.7;
-        this.vel.mult(0.85);
-    }*/
+    
 };
 Node.prototype.reset = function() {
     this.vel.zero2D();
@@ -1236,7 +1222,8 @@ raw.onreadystatechange = function() {
 };
 raw.send(null);
 
-generateBall(200, 250, 0, 5, 100, 10);player = scene.objs[1].nodes[0].pos;
+generateBall(200, -250, 0, 5, 100, 10);
+player = scene.objs[1].nodes[0].pos;
 var cam = {
     x: 0,
     y: 0

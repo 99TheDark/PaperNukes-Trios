@@ -4,10 +4,12 @@ size(innerWidth, innerHeight);
 // Globals
 var gravity = true;
 var showVelocities = false;
-var windSpeed = 0.07;
-var bounciness = 40;
-var airPressure = 70;
+var nodeMode = false;
+var windSpeed = 0.1;
+var bounciness = 10;
+var airPressure = 120;
 var paused = false;
+var currentScene = "logo";
 
 /**genral**/
 // {
@@ -662,7 +664,6 @@ var intro = function() {
 
 /**scenes**/
 //{
-var currentScene = "logo";
 var runScenes = () => {
     background(248, 248, 246);
     runBackground();
@@ -684,9 +685,8 @@ var runScenes = () => {
         } break;
         case "game":
             pushMatrix();
-            translate(round(width/2 - cam.x), round(height/2 - cam.y));
-            cam.x = lerp(cam.x, player.x, 0.1);
-            cam.y = lerp(cam.y, player.y, 0.1);
+            translate(round(width / 2 - cam.x), round(height / 2 - cam.y));
+            cam.lerp(player, 0.1);
             background(192, 232, 250);
             if(!paused) scene.update();
             scene.draw();
@@ -919,10 +919,24 @@ Node.prototype.update = function() {
     [this.lastPos.x, this.lastPos.y] = [this.pos.x, this.pos.y];
 
     if(gravity) this.vel.y += this.mass / 60; // gravity
-    this.vel.mult(0.97);
+    this.vel.mult(0.95);
     this.pos.add(this.vel);
 
-    
+    /*if(this.pos.y + this.r >= height) {
+        this.pos.y = height - this.r;
+        this.vel.y *= -0.7;
+        this.vel.mult(0.85);
+    }
+    if(this.pos.x + this.r >= width) {
+        this.pos.x = width - this.r;
+        this.vel.x *= -0.7;
+        this.vel.mult(0.85);
+    }
+    if(this.pos.x - this.r <= 0) {
+        this.pos.x = this.r;
+        this.vel.x *= -0.7;
+        this.vel.mult(0.85);
+    }*/
 };
 Node.prototype.reset = function() {
     this.vel.zero2D();
@@ -957,7 +971,7 @@ Node.prototype.collideSpring = function(spring) {
             nodeEnd.y
         );
 
-        if(collision) {
+        if(collision) { // @COL
             let short = shortestDistance(spring.p1.lastPos, spring.p2.lastPos, this.lastPos);
 
             let cpos = DVector.sub(
@@ -976,7 +990,7 @@ Node.prototype.collideSpring = function(spring) {
             let delta = DVector.sub(spring.p1.pos, spring.p2.pos);
             let normal = new DVector(delta.y, -delta.x);
             normal.normalize();
-            normal = DVector.mult(normal, -sign(DVector.dot(v, normal)));
+            normal = DVector.mult(normal, -sign(DVector.dot(this.vel, normal)));
             v = DVector.sub(
                 v,
                 DVector.mult(
@@ -988,9 +1002,8 @@ Node.prototype.collideSpring = function(spring) {
             let dpos = DVector.sub(cpos, this.pos);
             this.pos.add(dpos);
 
-            this.vel.add(v);
-            spring.p1.vel.sub(v);
-            spring.p2.vel.sub(v);
+            this.vel.set(v);
+            this.vel.add(DVector.mult(normal, 10));
 
             let friction = new DVector(1 - normal.x * 0.3, 1 - normal.y * 0.3);
 
@@ -1041,28 +1054,40 @@ Scene.prototype.add = function(mesh) {
 };
 Scene.prototype.draw = function() {
     this.objs.forEach(obj => {
-        strokeWeight(3);
-        obj.springs.forEach(spring => {
-            let col = lerpColor(
-                color(255, 0, 0),
-                color(0, 0, 0),
-                abs(spring.disp) / spring.k
-            );
-            stroke(col);
-            line(spring.p1.pos.x, spring.p1.pos.y, spring.p2.pos.x, spring.p2.pos.y);
-        });
-        let m = 10;
-        obj.nodes.forEach(node => {
-            stroke(0);
-            strokeWeight(node.r * 2);
-            point(node.pos.x, node.pos.y);
+        if(nodeMode) {
+            strokeWeight(3);
+            obj.springs.forEach(spring => {
+                let col = lerpColor(
+                    color(255, 0, 0),
+                    color(0, 0, 0),
+                    abs(spring.disp) / spring.k
+                );
+                stroke(col);
+                line(spring.p1.pos.x, spring.p1.pos.y, spring.p2.pos.x, spring.p2.pos.y);
+            });
+        
+            let m = 5;
+            obj.nodes.forEach(node => {
+                stroke(0);
+                strokeWeight(node.r * 2);
+                point(node.pos.x, node.pos.y);
 
-            if(showVelocities) {
-                stroke(0, 150, 0);
-                strokeWeight(3);
-                line(node.pos.x, node.pos.y, node.pos.x + node.vel.x * m, node.pos.y + node.vel.y * m);
-            }
-        });
+                if(showVelocities) {
+                    stroke(0, 150, 0);
+                    strokeWeight(3);
+                    line(node.pos.x, node.pos.y, node.pos.x + node.vel.x * m, node.pos.y + node.vel.y * m);
+                }
+            });
+        } else {
+            beginShape();
+            strokeWeight(5);
+            stroke(200);
+            fill(255);
+            obj.nodes.forEach(node => {
+                vertex(node.pos.x, node.pos.y);
+            });
+            endShape(CLOSE);
+        }
     });
 };
 Scene.prototype.update = function() {
@@ -1222,16 +1247,12 @@ raw.onreadystatechange = function() {
 };
 raw.send(null);
 
-generateBall(200, -250, 0, 5, 100, 10);
+generateBall(200, -250, 0, 5, 100, 18);
+
 player = scene.objs[1].nodes[0].pos;
-var cam = {
-    x: 0,
-    y: 0
-}
+var cam = DVector.zero2D();
 
 draw = function() {
-    
-    
     runScenes();
 };
 

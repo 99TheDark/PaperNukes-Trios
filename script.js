@@ -11,7 +11,7 @@ var paused = false;
 
 /**genral**/
 // {
-var transition, runBackground;
+var transition, runBackground, cam, player;
 
 var mc = false;
 mousePressed = () => mc = true;
@@ -683,9 +683,14 @@ var runScenes = () => {
 
         } break;
         case "game":
+            pushMatrix();
+            translate(round(width/2 - cam.x), round(height/2 - cam.y));
+            cam.x = lerp(cam.x, player.x, 0.1);
+            cam.y = lerp(cam.y, player.y, 0.1);
             background(192, 232, 250);
             if(!paused) scene.update();
             scene.draw();
+            popMatrix();
             break;
         default:
             Dark.error(`"${scene}" is not a vaild scene`);
@@ -1231,9 +1236,15 @@ raw.onreadystatechange = function() {
 };
 raw.send(null);
 
-generateBall(200, 250, 0, 5, 100, 10);
+generateBall(200, 250, 0, 5, 100, 10);player = scene.objs[1].nodes[0].pos;
+var cam = {
+    x: 0,
+    y: 0
+}
 
 draw = function() {
+    
+    
     runScenes();
 };
 

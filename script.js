@@ -3,10 +3,11 @@ size(innerWidth, innerHeight);
 
 // Globals
 var gravity = true;
-var showVelocities = !false;
+var showVelocities = false;
 var windSpeed = 0.07;
 var bounciness = 40;
-var airPressure = 150;
+var airPressure = 70;
+var paused = false;
 
 // From https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
 // https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
@@ -44,17 +45,17 @@ var shortestDistance = function(p, q, n) {
 };
 
 var Node = function(x, y, static, r) {
-    this.pos = new DVector(x, y + height / 2);
+    this.pos = new DVector(x, y);
     this.lastPos = new DVector(this.pos.x, this.pos.y);
-    this.vel = new DVector((this.pos.y / 8 - 70) * 0, -20); // give rotational energy, not final
+    this.vel = new DVector(0, 0); // give rotational energy, not final
     this.static = static || false;
     this.r = r || 6;
-    this.mass = PI * sq(this.r) * 0.5;
+    this.mass = PI * sq(this.r) * 0.3;
 };
 Node.prototype.update = function() {
     [this.lastPos.x, this.lastPos.y] = [this.pos.x, this.pos.y];
 
-    if(gravity) this.vel.y += this.mass * dt; // gravity
+    if(gravity) this.vel.y += this.mass / 60; // gravity
     this.vel.mult(0.97);
     this.pos.add(this.vel);
 
@@ -63,7 +64,7 @@ Node.prototype.update = function() {
         this.vel.y *= -0.7;
         this.vel.mult(0.85);
     }
-    if(this.pos.x + this.r >= width) {
+    /*if(this.pos.x + this.r >= width) {
         this.pos.x = width - this.r;
         this.vel.x *= -0.7;
         this.vel.mult(0.85);
@@ -72,7 +73,7 @@ Node.prototype.update = function() {
         this.pos.x = this.r;
         this.vel.x *= -0.7;
         this.vel.mult(0.85);
-    }
+    }*/
 };
 Node.prototype.reset = function() {
     this.vel.zero2D();
@@ -83,50 +84,80 @@ Node.prototype.copy = function() {
     return n;
 };
 Node.prototype.collideSpring = function(spring) {
-    let collision = lineCollision(
-        spring.p1.pos.x,
-        spring.p1.pos.y,
-        spring.p2.pos.x,
-        spring.p2.pos.y,
-        this.lastPos.x,
-        this.lastPos.y,
-        this.pos.x,
-        this.pos.y
-    );
+    if(spring.p1 != this && spring.p2 != this && !spring.isPressure && !this.static) {
+        let springStart = spring.p1.pos.get();
+        let springEnd = spring.p2.pos.get();
+        let springDir = DVector.normalize(DVector.sub(springEnd, springStart));
+        springStart.sub(DVector.mult(springDir, spring.p1.r));
+        springEnd.add(DVector.mult(springDir, spring.p2.r));
 
-    if(collision && spring.p1 != this && spring.p2 != this) {
-        let short = shortestDistance(spring.p1.pos, spring.p2.pos, this.lastPos);
+        let nodeStart = this.lastPos.get();
+        let nodeEnd = this.pos.get();
+        /*let nodeDir = DVector.normalize(DVector.sub(nodeEnd, nodeStart));
+        nodeStart.sub(DVector.mult(nodeDir, this.r));
+        nodeEnd.add(DVector.mult(nodeDir, this.r));*/
 
-        let cpos = DVector.sub(
-            collision,
-            DVector.mult(
-                DVector.mult(
-                    DVector.normalize(this.vel),
-                    DVector.dist(collision, this.lastPos) / short.dist
-                ),
-                this.r
-            )
+        let collision = lineCollision(
+            springStart.x,
+            springStart.y,
+            springEnd.x,
+            springEnd.y,
+            nodeStart.x,
+            nodeStart.y,
+            nodeEnd.x,
+            nodeEnd.y
         );
-        let v = DVector.sub(cpos, this.pos);
 
-        let dpos = DVector.sub(cpos, this.pos);
-        this.pos.add(dpos);
-        this.vel.add(v);
+        if(collision) {
+            let short = shortestDistance(spring.p1.lastPos, spring.p2.lastPos, this.lastPos);
 
-        spring.p1.vel.sub(v);
-        spring.p2.vel.sub(v);
+            let cpos = DVector.sub(
+                collision,
+                DVector.mult(
+                    DVector.mult(
+                        DVector.normalize(this.vel),
+                        DVector.dist(collision, this.lastPos) / short.dist
+                    ),
+                    this.r
+                )
+            );
+            let v = DVector.sub(cpos, this.lastPos);
 
-        this.mesh.nodes.forEach(node => node.vel.add(DVector.mult(v, 1.0)));
-        spring.mesh.nodes.forEach(node => node.vel.sub(DVector.mult(v, 1.0)));
+            // reflection across surface normal
+            let delta = DVector.sub(spring.p1.pos, spring.p2.pos);
+            let normal = new DVector(delta.y, -delta.x);
+            normal.normalize();
+            normal = DVector.mult(normal, -sign(DVector.dot(v, normal)));
+            v = DVector.sub(
+                v,
+                DVector.mult(
+                    normal,
+                    2 * DVector.dot(normal, v)
+                )
+            );
+
+            let dpos = DVector.sub(cpos, this.pos);
+            this.pos.add(dpos);
+
+            this.vel.add(v);
+            spring.p1.vel.sub(v);
+            spring.p2.vel.sub(v);
+
+            let friction = new DVector(1 - normal.x * 0.3, 1 - normal.y * 0.3);
+
+            this.vel.mult(friction);
+            this.vel.mult(0.85);
+        }
     }
 };
 
-var Spring = function(p1, p2, len, i1, i2, k) {
+var Spring = function(p1, p2, len, i1, i2, isPressure = false) {
     this.p1 = p1;
     this.p2 = p2;
     this.len = len;
     this.disp = 0;
-    this.k = k;
+    this.k = isPressure ? airPressure : bounciness;
+    this.isPressure = isPressure;
 
     this.i1 = i1;
     this.i2 = i2;
@@ -135,11 +166,11 @@ Spring.prototype.update = function() {
     this.disp = DVector.dist(this.p1.pos, this.p2.pos) - this.len;
     let ang = atan2(this.p2.pos.y - this.p1.pos.y, this.p2.pos.x - this.p1.pos.x);
 
-    this.p1.vel.x += dt * this.k * this.disp * cos(ang) / this.p1.mass;
-    this.p1.vel.y += dt * this.k * this.disp * sin(ang) / this.p1.mass;
+    this.p1.vel.x += this.k * this.disp * cos(ang) / this.p1.mass / 60;
+    this.p1.vel.y += this.k * this.disp * sin(ang) / this.p1.mass / 60;
 
-    this.p2.vel.x += dt * this.k * this.disp * cos(ang + 180) / this.p2.mass;
-    this.p2.vel.y += dt * this.k * this.disp * sin(ang + 180) / this.p2.mass;
+    this.p2.vel.x += this.k * this.disp * cos(ang + 180) / this.p2.mass / 60;
+    this.p2.vel.y += this.k * this.disp * sin(ang + 180) / this.p2.mass / 60;
 };
 
 var Mesh = function() {
@@ -171,14 +202,11 @@ Scene.prototype.draw = function() {
             stroke(col);
             line(spring.p1.pos.x, spring.p1.pos.y, spring.p2.pos.x, spring.p2.pos.y);
         });
-        beginShape();
-        // fill(255); // fill color
         let m = 10;
         obj.nodes.forEach(node => {
             stroke(0);
             strokeWeight(node.r * 2);
             point(node.pos.x, node.pos.y);
-            vertex(node.pos.x, node.pos.y);
 
             if(showVelocities) {
                 stroke(0, 150, 0);
@@ -186,22 +214,19 @@ Scene.prototype.draw = function() {
                 line(node.pos.x, node.pos.y, node.pos.x + node.vel.x * m, node.pos.y + node.vel.y * m);
             }
         });
-        endShape(CLOSE);
-        noFill();
     });
 };
 Scene.prototype.update = function() {
     this.objs.forEach(obj => {
         obj.springs.forEach(spring => spring.update());
-        obj.nodes.forEach(node => (node.vel.x += windSpeed) && node.static ? node.reset() : node.update());
-    });
-    this.objs.forEach(obj => {
+        obj.nodes.forEach(node => (node.vel.x += windSpeed) & (node.static ? node.reset() : node.update()));
         this.objs.forEach(collisionObj => {
             if(collisionObj != obj) {
                 obj.nodes.forEach(node => collisionObj.springs.forEach(spring => node.collideSpring(spring)));
             }
         });
     });
+
 };
 
 var loadLevel = function(txt) {
@@ -237,10 +262,10 @@ var loadLevel = function(txt) {
                     DVector.dist(n1.pos, n2.pos),
                     Number(obj[1]),
                     Number(obj[2]),
-                    bounciness
+                    false
                 ));
                 break;
-            case "a":
+            case "p":
                 var n1 = curObj.nodes[Number(obj[1])], n2 = curObj.nodes[Number(obj[2])];
                 curObj.springs.push(new Spring(
                     n1,
@@ -248,7 +273,7 @@ var loadLevel = function(txt) {
                     DVector.dist(n1.pos, n2.pos),
                     Number(obj[1]),
                     Number(obj[2]),
-                    airPressure
+                    true
                 ));
                 break;
             case "o": // object
@@ -323,7 +348,7 @@ var generateBall = function(xPos, yPos, xVel, yVel, radiusSize, numOfPoints) {
             if(abs(i - j) == 1 || abs(i - j) == numOfPoints - 1) {
                 circleCode += "s " + i + " " + j + "\n";
             } else {
-                circleCode += "a " + i + " " + j + "\n";
+                circleCode += "p " + i + " " + j + "\n";
             }
         }
     }
@@ -348,12 +373,11 @@ raw.onreadystatechange = function() {
 };
 raw.send(null);
 
-generateBall(200, 200, 20, -20, 100, 10);
-generateBall(1000, 100, -17, -12, 50, 10);
+generateBall(200, 250, 0, 5, 100, 10);
 
 draw = function() {
     background(192, 232, 250);
-    scene.update();
+    if(!paused) scene.update();
     scene.draw();
 };
 

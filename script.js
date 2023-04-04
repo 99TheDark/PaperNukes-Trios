@@ -18,12 +18,6 @@ var transition, runBackground, cam, player;
 var mc = false;
 mousePressed = () => mc = true;
 
-var colorScheme = {
-    main1: color(251, 251, 249),
-    main2: color(233, 232, 230),
-    main3: color(186, 192, 206)
-};
-
 //}
 /**Logo made by Ace Rogers**/
 //{
@@ -62,7 +56,6 @@ for(var i = 0; i < 300; i++) {
 
 // }
 
-var Intro = true;
 var timer = 0;
 var nuke = function(x, y, sizeX, sizeY, r) {
     pushMatrix();
@@ -694,14 +687,14 @@ var runScenes = () => {
             break;
         default:
             Dark.error(`"${scene}" is not a vaild scene`);
-    };
+    }
     particles.run();
     transition.runBands();
 };
 //}
 /**particles**/
 //{
-var Particle = function(position, type, col) {
+var Particle = function(position, type) {
 
     this.type = type;
     this.position = position.get();
